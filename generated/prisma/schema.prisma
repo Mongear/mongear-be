@@ -1,0 +1,423 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BillStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+  REFUNDED
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+  REFUNDED
+}
+
+enum TransactionMethod {
+  CASH
+  CREDIT
+  QR
+  AMORTIZATION
+}
+
+model Product {
+  // properties
+  id                 String               @id @default(uuid())
+  name               String
+  description        String
+  price              Decimal
+  sku                String
+  stock              Int
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  Keyboard           Keyboard?
+  Switch             Switch?
+  Keycap             Keycap?
+  Accessory          Accessory?
+  ProductCategory    ProductCategory[]
+  WishlistItem       WishlistItem[]
+  BillItem           BillItem[]
+  UserBuildComponent UserBuildComponent[]
+  ProductImage       ProductImage[]
+
+  // navigational properties
+  @@map("products")
+}
+
+model Color {
+  id         String   @id @default(uuid())
+  keyboardId String
+  hex        String
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  keyboard   Keyboard @relation(fields: [keyboardId], references: [id])
+
+  @@map("colors")
+}
+
+model Keyboard {
+  id               String   @id @default(uuid())
+  productId        String   @unique
+  layoutId         String
+  connectionTypeId String
+  isHotswapable    Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  product        Product        @relation(fields: [productId], references: [id])
+  layout         Layout         @relation(fields: [layoutId], references: [id])
+  connectionType ConnectionType @relation(fields: [connectionTypeId], references: [id])
+  Color          Color[]
+
+  @@map("keyboards")
+}
+
+model Layout {
+  id        String     @id @default(uuid())
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Keyboard  Keyboard[]
+
+  @@map("layouts")
+}
+
+model ConnectionType {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Keyboard Keyboard[]
+
+  @@map("connection_types")
+}
+
+model Switch {
+  id                String     @id @default(uuid())
+  productId         String     @unique
+  typeId            String
+  actuationForce    Decimal    @default(0)
+  actuationPoint    Decimal    @default(0)
+  totalTravel       Decimal    @default(0)
+  keystrokeLifespan Int        @default(0)
+  isFactoryLubed    Boolean    @default(false)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  product           Product    @relation(fields: [productId], references: [id])
+  switchType        SwitchType @relation(fields: [typeId], references: [id])
+
+  @@map("switches")
+}
+
+model SwitchType {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Switch    Switch[]
+
+  @@map("switch_types")
+}
+
+model Keycap {
+  id         String   @id @default(uuid())
+  productId  String   @unique
+  profileId  String
+  materialId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product  Product        @relation(fields: [productId], references: [id])
+  profile  KeycapProfile  @relation(fields: [profileId], references: [id])
+  material KeycapMaterial @relation(fields: [materialId], references: [id])
+
+  @@map("keycaps")
+}
+
+model KeycapProfile {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Keycap    Keycap[]
+
+  @@map("keycap_profiles")
+}
+
+model KeycapMaterial {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Keycap    Keycap[]
+
+  @@map("keycap_materials")
+}
+
+model Accessory {
+  id        String        @id @default(uuid())
+  productId String        @unique
+  typeId    String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  product   Product       @relation(fields: [productId], references: [id])
+  type      AccessoryType @relation(fields: [typeId], references: [id])
+
+  @@map("accessories")
+}
+
+model AccessoryType {
+  id        String      @id @default(uuid())
+  name      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  Accessory Accessory[]
+
+  @@map("accessory_types")
+}
+
+model Category {
+  id              String            @id @default(uuid())
+  name            String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  ProductCategory ProductCategory[]
+
+  @@map("categories")
+}
+
+model ProductCategory {
+  id         String   @id @default(uuid())
+  productId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@map("product_categories")
+}
+
+model User {
+  // properties
+  id           String       @id @default(uuid())
+  roleId       String
+  email        String       @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  address      String
+  phoneNumber  String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  // navigational properties
+  role         Role         @relation(fields: [roleId], references: [id])
+  Cart         Cart[]
+  Wishlist     Wishlist[]
+  Bill         Bill[]
+  UserCoupon   UserCoupon[]
+  UserBuild    UserBuild[]
+
+  @@map("users")
+}
+
+model Role {
+  // properties
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+
+  @@map("roles")
+}
+
+model Cart {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User       @relation(fields: [userId], references: [id])
+  CartItem CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart Cart @relation(fields: [cartId], references: [id])
+
+  @@map("cart_items")
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id])
+  WishlistItem WishlistItem[]
+
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id         String   @id @default(uuid())
+  wishlistId String
+  productId  String
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@map("wishlist_items")
+}
+
+model Bill {
+  id          String     @id @default(uuid())
+  userId      String
+  totalAmount Decimal    @default(0)
+  status      BillStatus
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id])
+  BillItem    BillItem[]
+  Transaction Transaction[]
+
+  @@map("bills")
+}
+
+model BillItem {
+  id              String   @id @default(uuid())
+  billId          String
+  productId       String
+  quantity        Int      @default(1)
+  priceAtPurchase Decimal  @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  bill    Bill    @relation(fields: [billId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("bill_items")
+}
+
+model Transaction {
+  id              String            @id @default(uuid())
+  billId          String
+  paymentMethod   TransactionMethod
+  amount          Decimal
+  status          TransactionStatus
+  transactionDate DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  bill Bill @relation(fields: [billId], references: [id])
+
+  @@map("transactions")
+}
+
+model Coupon {
+  id                 String       @id @default(uuid())
+  code               String       @unique
+  discountType       String
+  discountValue      String
+  validFrom          DateTime
+  validUntil         DateTime
+  minimumOrderAmount Decimal
+  usageLimit         Int
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  UserCoupon         UserCoupon[]
+
+  @@map("coupons")
+}
+
+model UserCoupon {
+  id         String   @id @default(uuid())
+  couponId   String
+  userId     String
+  usageCount Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  coupon Coupon @relation(fields: [couponId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("user_coupons")
+}
+
+model UserBuild {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user               User                 @relation(fields: [userId], references: [id])
+  UserBuildComponent UserBuildComponent[]
+
+  @@map("user_builds")
+}
+
+model UserBuildComponent {
+  id              String   @id @default(uuid())
+  userBuildId     String
+  productId       String
+  componentTypeId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userBuild     UserBuild     @relation(fields: [userBuildId], references: [id])
+  product       Product       @relation(fields: [productId], references: [id])
+  componentType ComponentType @relation(fields: [componentTypeId], references: [id])
+
+  @@map("user_build_components")
+}
+
+model ComponentType {
+  id                 String               @id @default(uuid())
+  name               String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  UserBuildComponent UserBuildComponent[]
+
+  @@map("component_types")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  imageUrl  String
+  altText   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_images")
+}
